@@ -6,7 +6,7 @@ package SMS::Ringtone::RTTTL::Parser;
 
 #### Class information ####
 # Protected fields:
-#	-DEFAULTS: Reference to hash of defaults containing keys d,o,b.
+#	-DEFAULTS: Reference to hash of defaults containing keys d,o,b,l,v,s.
 #	-ERRORS: Reference to array of errors.
 #	-NOTES: Reference to array of [duration, note, octave, dots] elements.
 #	-P1.VALID: Is part 1 valid?
@@ -30,7 +30,10 @@ package SMS::Ringtone::RTTTL::Parser;
 #	get_part_notes(): Returns notes part.
 #	get_note_count(): Return the amount of notes.
 #	get_notes(): Returns an array of [duration, note, octave, dots] elements.
+#	get_repeat(): Returns the effective repeat length.
 #	get_rtttl(): Returns the RTTTL string.
+#	get_style(): Returns the effective style.
+#	get_volume(): Returns the effective volume.
 #	get_warnings(): Returns an array of warning messages.
 #	has_errors()
 #	has_warnings()
@@ -43,8 +46,15 @@ package SMS::Ringtone::RTTTL::Parser;
 use strict;
 use Carp;
 our @ISA = qw(Exporter);
-our @EXPORT = qw(is_valid_bpm is_valid_duration is_valid_octave nearest_bpm nearest_duration nearest_octave);
-our $VERSION = '0.03';
+our @EXPORT = qw(is_valid_bpm
+                 is_valid_duration
+                 is_valid_octave
+                 is_valid_repeat
+                 is_valid_volume
+                 nearest_bpm
+                 nearest_duration
+                 nearest_octave);
+our $VERSION = '0.04';
 
 1;
 
@@ -104,7 +114,7 @@ sub nearest_duration {
  return &_get_nearest(pop,\@DURATION);
 }
 
-our @OCTAVE = ('5','6','7','8');
+our @OCTAVE = ('4','5','6','7'); # Octave 4 note A is 440Hz.
 
 sub is_valid_octave {
  return &_inarray(pop,\@OCTAVE);
@@ -113,6 +123,18 @@ sub is_valid_octave {
 sub nearest_octave {
  return &_get_nearest(pop,\@OCTAVE);
 }
+
+sub is_valid_repeat {
+ my $i = pop;
+ return(($i =~ /^\d+$/o) && ($i >= 0) && ($i <= 15));
+}
+
+sub is_valid_volume {
+ my $i = pop;
+ return(($i =~ /^\d+$/o) && ($i >= 0) && ($i <= 15));
+}
+
+our %DEFAULTS = ('d' => 4, 'o' => 6, 'b' => 63, 'v' => 7, 's' => 'n', 'l' => 0);
 
 ####
 # Constructor new()
@@ -133,7 +155,8 @@ sub new {
  }
 
  # Set private fields
- $self->{'-DEFAULTS'} = {'d' => 4, 'o' => 6, 'b' => 63};
+ my %defs = %DEFAULTS;
+ $self->{'-DEFAULTS'} = \%defs;
  $self->{'-ERRORS'} = [];
  $self->{'-NOTES'} = [];
  $self->{'-P1.VALID'} = 0;
@@ -188,15 +211,12 @@ sub _parse {
 sub _parse_name {
  my $self = shift;
  my $name = shift;
- if (length($name) <= 10) {
+ if (length($name) <= 15) {
   $self->{'-P1.VALID'} = 1;
   return 1;
  }
- elsif (length($name) <= 20) {
-  push(@{$self->{'-WARNINGS'}},"Length of name part exceeds 10 characters:  $name");
- }
  else {
-  push(@{$self->{'-ERRORS'}},"Length of name part exceeds 20 characters: $name");
+  push(@{$self->{'-WARNINGS'}},"Length of name part exceeds 15 characters:  $name");
  }
  return 0;
 }
@@ -216,24 +236,36 @@ sub _parse_defaults {
  my $d;
  my $o;
  my $b;
+ my $l;
+ my $v;
+ my $s;
+ if ($part =~ s/\s//g) {
+  push(@{$warnings},'White space found and removed from defaults part.');
+ }
  if (length($part)) {
-  if ($part =~ s/\s//g) {
-   push(@{$warnings},'White space found and removed from defaults part.');
-  }
   my @defs = split(',',$part);
-  my $def;
-  foreach $def (@defs) {
-   unless ($def =~ /^([dob])=(\d+)$/o) {
+  foreach my $def (@defs) {
+   unless ($def =~ /^(([doblv])=(\d+)|(s)=([ncs]))$/o) {
     push(@{$warnings},"Invalid entry in defaults part: $def");
     $result = 0;
     next;
    }
-   if ($1 eq 'd') {
+   my $key;
+   my $value;
+   if (defined($2)) {
+    $key = $2;
+    $value = $3;
+   }
+   else {
+    $key = $4;
+    $value = $5;
+   }
+   if ($key eq 'd') {
     if (defined($d)) {
      push(@{$warnings},"Duration entry in defaults specified more than once: $part");
      $result = 0;
     }
-    my $i = $2;
+    my $i = $value;
     unless(&is_valid_duration($i)) {
      my $nearest = &nearest_octave($i);
      push(@{$errors},"Invalid duration setting $i in defaults replaced with $nearest: $part");
@@ -242,12 +274,12 @@ sub _parse_defaults {
     }
     $d = $i;
    }
-   elsif ($1 eq 'o') {
+   elsif ($key eq 'o') {
     if (defined($o)) {
      push(@{$warnings},"Octave (scale) entry in defaults specified more than once: $part");
      $result = 0;
     }
-    my $i = $2;
+    my $i = $value;
     unless(&is_valid_octave($i)) {
      my $nearest = &nearest_octave($i);
      push(@{$errors},"Invalid octave (scale) setting $i in defaults replaced with $nearest: $part");
@@ -256,12 +288,12 @@ sub _parse_defaults {
     }
     $o = $i;
    }
-   else {
+   elsif ($key eq 'b') {
     if (defined($b)) {
      push(@{$warnings},"BPM entry in defaults specified more than once: $part");
      $result = 0;
     }
-    my $i = $2;
+    my $i = $value;
     unless(&is_valid_bpm($i)) {
      my $nearest = &nearest_bpm($i);
      push(@{$warnings},"Invalid BPM setting $i in defaults replaced with $nearest: $part");
@@ -269,6 +301,39 @@ sub _parse_defaults {
      $result = 0;
     }
     $b = $i;
+   }
+   elsif ($key eq 'l') {
+    if (defined($l)) {
+     push(@{$warnings},"Length entry in defaults specified more than once: $part");
+     $result = 0;
+    }
+    if (&is_valid_repeat($value)) {
+     $l = $value;
+    }
+    else {
+     push(@{$errors},"Invalid length setting $value in defaults.");
+     $result = 0;
+    }
+   }
+   elsif ($key eq 'v') {
+    if (defined($v)) {
+     push(@{$warnings},"Volume entry in defaults specified more than once: $part");
+     $result = 0;
+    }
+    if (&is_valid_volume($value)) {
+     $v = $value;
+    }
+    else {
+     push(@{$errors},"Invalid volume setting $value in defaults.");
+     $result = 0;
+    }
+   }
+   elsif ($key eq 's') {
+    if (defined($s)) {
+     push(@{$warnings},"Style entry in defaults specified more than once: $part");
+     $result = 0;
+    }
+    $s = $value;
    }
   }
  }
@@ -280,6 +345,15 @@ sub _parse_defaults {
  }
  if (defined($b)) {
   $self->{'-DEFAULTS'}->{'b'} = $b;
+ }
+ if (defined($l)) {
+  $self->{'-DEFAULTS'}->{'l'} = $l;
+ }
+ if (defined($v)) {
+  $self->{'-DEFAULTS'}->{'v'} = $v;
+ }
+ if (defined($s)) {
+  $self->{'-DEFAULTS'}->{'s'} = $s;
  }
  return $result;
 }
@@ -306,28 +380,41 @@ sub _parse_notes {
  my $i = 0;
  foreach my $e (@notespart) {
   $i++;
-  unless($e =~ /^(\d{0,2})?([P;BEH]|[CDFGA]#?)(\.){0,2}([4-8])?(\.){0,2}$/oi) {
+  unless($e =~ /^(\d*)([P;BEH]|[CDFGA]#?)(\d*)([\.;&])?$/oi) {
    push(@{$errors},"Invalid syntax in note $i: $e.");
    $result = 0;
    next;
   }
   my $duration = length($1) ? $1 : $def_d;
-  my $note     = uc($2);
+  unless(&is_valid_duration($duration)) {
+   push(@{$errors},"Invalid duration $duration in note $i: $e.");
+   $result = 0;
+  }
+  my $note = uc($2);
   if ($note eq 'H') {
    $note = 'B';
   }
   elsif ($note eq ';') {
    $note = 'P';
   }
-  my $octave   = length($4) ? $4 : $def_o;
-  my $dots = length($3) + length($5);
-  if ($dots > 2) {
-   push(@{$errors},"More than 2 dots present in note $i: $e.");
-   $dots = 2;
+  my $octave = length($3) ? $3 : $def_o;
+  unless(&is_valid_octave($octave)) {
+   push(@{$errors},"Invalid octave $octave in note $i: $e.");
+   $result = 0;
   }
-  else {
-   push(@{$notes},[$duration,$note,$octave,$dots]);
+  my $dots = 0;
+  if (length($4) > 0) {
+   if ($4 eq '.') {
+    $dots = 1;
+   }
+   elsif ($4 eq ';') {
+    $dots = 2;
+   }
+   elsif ($4 eq '&') {
+    $dots = 3;
+   }
   }
+  push(@{$notes},[$duration,$note,$octave,$dots]);
  }
  return $result;
 }
@@ -420,23 +507,119 @@ sub get_notes {
 }
 
 ####
-# Method	: get_rtttl()
-# Description	: Returns the RTTTL string.
+# Method	: get_repeat()
+# Description	: Returns repeat length setting of RTTTL string.
 # Parameters	: none
-# Returns	: RTTTL string.
+# Returns	: Decimal result
+#####
+sub get_repeat {
+ my $self = shift;
+ return $self->{'-DEFAULTS'}->{'l'};
+}
+
+####
+# Method	: get_rtttl()
+# Description	: Reconstructs the RTTTL string.
+# Parameters	: none
+# Returns	: Optimized RTTTL string or undef if errors present.
 #####
 sub get_rtttl {
  my $self = shift;
- my $parts = $self->{'-PARTS'};
- my $defs;
- if ($self->is_defaults_valid()) {
-  $defs = $parts->[1];
+ if ($self->has_errors()) {
+  return undef;
  }
- else {
-  my $x = $self->{'-DEFAULTS'};
-  $defs = 'd=' . $defs->{'d'} . ',o=' . $defs->{'o'} . ',b=' . $defs->{'b'};
+ my $name = substr($self->get_part_name(),0,15);
+ # Find the most common duration and most common octave
+ my %d = map{$_,0} @DURATION;
+ my %o = map{$_,0} @OCTAVE;
+ my $notes = $self->get_notes();
+ foreach my $n (@{$notes}) { #[duration, note, octave, dots]
+  $d{$n->[0]}++;
+  $o{$n->[2]}++;
  }
- return substr($parts->[0],0,20) . ":$defs:" . $parts->[2];
+ my $defdur = $DURATION[0];
+ my $maxuse = 0;
+ foreach (keys %d) {
+  if ($d{$_} > $maxuse) {
+   $defdur = $_;
+   $maxuse = $d{$_};
+  }
+ }
+ my $defoct = $OCTAVE[0];
+ $maxuse = 0;
+ foreach (keys %o) {
+  if ($o{$_} > $maxuse) {
+   $defoct = $_;
+   $maxuse = $o{$_};
+  }
+ }
+ my @defs;
+ # Add most common duration and octave to defaults.
+ unless($defdur == $DEFAULTS{'d'}) {
+  push(@defs,"d=$defdur");
+ }
+ unless($defoct == $DEFAULTS{'o'}) {
+  push(@defs,"o=$defoct");
+ }
+ unless($self->get_bpm() == $DEFAULTS{'b'}) {
+  push(@defs,'b=' . $self->get_bpm());
+ }
+ unless($self->get_style() eq $DEFAULTS{'s'}) {
+  push(@defs,'s=' . $self->get_style());
+ }
+ unless($self->get_repeat() == $DEFAULTS{'l'}) {
+  push(@defs,'l=' . $self->get_repeat());
+ }
+ unless($self->get_volume() == $DEFAULTS{'v'}) {
+  push(@defs,'v=' . $self->get_volume());
+ }
+ # Construct notes.
+ my @rtttlnotes;
+ foreach my $n (@{$notes}) { #[duration, note, octave, dots]
+  my $note = '';
+  unless($defdur == $n->[0]) {
+   $note .= $n->[0];
+  }
+  $note .= $n->[1];
+  unless($defoct == $n->[2]) {
+   $note .= $n->[2];
+  }
+  if ($n->[3] > 0) {
+   if ($n->[3] == 1) {
+    $note .= '.';
+   }
+   elsif ($n->[3] == 2) {
+    $note .= ';';
+   }
+   else {
+    $note .= '&';
+   }
+  }
+  push(@rtttlnotes,$note);
+ }
+ return "$name:" . join(',',@defs) . ':' . join(',',@rtttlnotes);
+}
+
+####
+# Method	: get_style()
+# Description	: Returns style setting of RTTTL string.
+# Parameters	: none
+# Returns	: Decimal result
+#####
+sub get_style {
+ my $self = shift;
+ return $self->{'-DEFAULTS'}->{'s'};
+}
+
+####
+# Method	: get_volume()
+# Description	: Returns volume setting of RTTTL string.
+# Parameters	: none
+# Returns	: Decimal result
+#####
+sub get_volume {
+ my $self = shift;
+ return $self->{'-DEFAULTS'}->{'v'};
 }
 
 ####
@@ -623,9 +806,21 @@ elements: duration, note, octave, dots.
  octave is the effective octave.
  dots is the number of dots.
 
+=item get_repeat()
+
+Returns the effective repeat length setting.
+
 =item get_rtttl()
 
-Returns the RTTTL string.
+Recontructs and returns an optimized version of the RTTTL string.
+
+=item get_style()
+
+Returns the effective style setting.
+
+=item get_volume()
+
+Returns the effective volume setting.
 
 =item get_warnings()
 
@@ -681,6 +876,14 @@ Returns a boolean indicating if the $dur parameter is a valid RTTTL duration val
 
 Returns a boolean indicating if the $octave parameter is a valid RTTTL octave value.
 
+=item is_valid_repeat($len)
+
+Returns a boolean indicating if the $len parameter is a valid RTTTL repeat length value.
+
+=item is_valid_volume($volume)
+
+Returns a boolean indicating if the $volume parameter is a valid RTTTL volume value.
+
 =item nearest_bpm($bpm)
 
 Returns the nearest valid RTTTL BPM setting to the parameter $bpm.
@@ -712,6 +915,15 @@ Fixed minor bugs in error messages.
 C<get_rtttl()> now returns RTTTL with valid defaults part if original RTTTL
 defaults part contains invalid values. Name part is also limited to length
 of 20 characters.
+
+=item Version 0.04  2001-12-26
+
+Maximum name length is now 15 instead of 10. Larger lengths only create
+warnings and not errors.
+Added support for RTTTL 1.1.
+Added C<get_repeat()>, C<get_style()>, and C<get_volume()> methods.
+Notes parsing follows specs more strictly.
+C<get_rtttl()> now returns a reconstructed and optimized RTTTL string.
 
 =back
 

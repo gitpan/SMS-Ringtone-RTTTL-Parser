@@ -109,9 +109,21 @@ elements: duration, note, octave, dots.
  octave is the effective octave.
  dots is the number of dots.</PRE>
 <P></P>
+<DT><STRONG><A NAME="item_get_repeat"><CODE>get_repeat()</CODE></A></STRONG><BR>
+<DD>
+Returns the effective repeat length setting.
+<P></P>
 <DT><STRONG><A NAME="item_get_rtttl"><CODE>get_rtttl()</CODE></A></STRONG><BR>
 <DD>
-Returns the RTTTL string.
+Recontructs and returns an optimized version of the RTTTL string.
+<P></P>
+<DT><STRONG><A NAME="item_get_style"><CODE>get_style()</CODE></A></STRONG><BR>
+<DD>
+Returns the effective style setting.
+<P></P>
+<DT><STRONG><A NAME="item_get_volume"><CODE>get_volume()</CODE></A></STRONG><BR>
+<DD>
+Returns the effective volume setting.
 <P></P>
 <DT><STRONG><A NAME="item_get_warnings"><CODE>get_warnings()</CODE></A></STRONG><BR>
 <DD>
@@ -164,6 +176,14 @@ Returns a boolean indicating if the $dur parameter is a valid RTTTL duration val
 <DD>
 Returns a boolean indicating if the $octave parameter is a valid RTTTL octave value.
 <P></P>
+<DT><STRONG><A NAME="item_is_valid_repeat"><CODE>is_valid_repeat($len)</CODE></A></STRONG><BR>
+<DD>
+Returns a boolean indicating if the $len parameter is a valid RTTTL repeat length value.
+<P></P>
+<DT><STRONG><A NAME="item_is_valid_volume"><CODE>is_valid_volume($volume)</CODE></A></STRONG><BR>
+<DD>
+Returns a boolean indicating if the $volume parameter is a valid RTTTL volume value.
+<P></P>
 <DT><STRONG><A NAME="item_nearest_bpm"><CODE>nearest_bpm($bpm)</CODE></A></STRONG><BR>
 <DD>
 Returns the nearest valid RTTTL BPM setting to the parameter $bpm.
@@ -193,6 +213,15 @@ Fixed minor bugs in error messages.
 <A HREF="#item_get_rtttl"><CODE>get_rtttl()</CODE></A> now returns RTTTL with valid defaults part if original RTTTL
 defaults part contains invalid values. Name part is also limited to length
 of 20 characters.
+<P></P>
+<DT><STRONG><A NAME="item_Version_0%2E04_2001%2D12%2D26">Version 0.04  2001-12-26</A></STRONG><BR>
+<DD>
+Maximum name length is now 15 instead of 10. Larger lengths only create
+warnings and not errors.
+Added support for RTTTL 1.1.
+Added <A HREF="#item_get_repeat"><CODE>get_repeat()</CODE></A>, <A HREF="#item_get_style"><CODE>get_style()</CODE></A>, and <A HREF="#item_get_volume"><CODE>get_volume()</CODE></A> methods.
+Notes parsing follows specs more strictly.
+<A HREF="#item_get_rtttl"><CODE>get_rtttl()</CODE></A> now returns a reconstructed and optimized RTTTL string.
 <P></P></DL>
 <P>
 <HR>
