@@ -54,7 +54,7 @@ our @EXPORT = qw(is_valid_bpm
                  nearest_bpm
                  nearest_duration
                  nearest_octave);
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 1;
 
@@ -421,7 +421,7 @@ sub _parse_notes {
    $result = 0;
   }
   my $dots = 0;
-  if (length($4) > 0) {
+  if (defined($4) && length($4)) {
    if ($4 eq '.') {
     $dots = 1;
    }
@@ -969,6 +969,11 @@ note form like:
  <note> := [<duration>] <note> [<special-duration>] [<scale>] <delimiter>
 instead of:
  <note> := [<duration>] <note> [<scale>] [<special-duration>] <delimiter>
+
+=item Version 0.07  2002-08-01
+
+Fixed length($4) check in _parse_notes() so that undefined values don't
+emmit warnings anymore.
 
 =back
 
