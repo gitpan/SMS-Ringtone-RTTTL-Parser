@@ -54,7 +54,7 @@ our @EXPORT = qw(is_valid_bpm
                  nearest_bpm
                  nearest_duration
                  nearest_octave);
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 1;
 
@@ -182,7 +182,9 @@ sub new {
 sub _parse {
  my $self = shift;
  my $rtttl = $self->{'-RTTTL'};
-
+ #if ($rtttl =~ s/\s+$//o) {
+ # push(@{$self->{'-WARNINGS'}},'Trailing white space found and removed from RTTTL string.');
+ #}
  # Split parts
  my @parts = split(':',$rtttl);
  unless(@parts == 3) {
@@ -239,9 +241,9 @@ sub _parse_defaults {
  my $l;
  my $v;
  my $s;
- if ($part =~ s/\s//g) {
-  push(@{$warnings},'White space found and removed from defaults part.');
- }
+ #if ($part =~ s/\s//go) {
+ # push(@{$warnings},'White space found and removed from defaults part.');
+ #}
  if (length($part)) {
   my @defs = split(',',$part);
   foreach my $def (@defs) {
@@ -381,13 +383,13 @@ sub _parse_notes {
  foreach my $e (@notespart) {
   $i++;
   unless($e =~ /^(\d*)([P;BEH]|[CDFGA]#?)(\d*)([\.;&])?$/oi) {
-   push(@{$errors},"Invalid syntax in note $i: $e.");
+   push(@{$errors},"Invalid syntax in note $i: $e");
    $result = 0;
    next;
   }
   my $duration = length($1) ? $1 : $def_d;
   unless(&is_valid_duration($duration)) {
-   push(@{$errors},"Invalid duration $duration in note $i: $e.");
+   push(@{$errors},"Invalid duration $duration in note $i: $e");
    $result = 0;
   }
   my $note = uc($2);
@@ -399,7 +401,7 @@ sub _parse_notes {
   }
   my $octave = length($3) ? $3 : $def_o;
   unless(&is_valid_octave($octave)) {
-   push(@{$errors},"Invalid octave $octave in note $i: $e.");
+   push(@{$errors},"Invalid octave $octave in note $i: $e");
    $result = 0;
   }
   my $dots = 0;
@@ -924,6 +926,12 @@ Added support for RTTTL 1.1.
 Added C<get_repeat()>, C<get_style()>, and C<get_volume()> methods.
 Notes parsing follows specs more strictly.
 C<get_rtttl()> now returns a reconstructed and optimized RTTTL string.
+
+=item Version 0.05  2002-01-02
+
+Fixed CRLF bug in test script.
+Warnings about whitespace in defaults section removed. Any whitespace
+found there or in notes section now results in an error.
 
 =back
 

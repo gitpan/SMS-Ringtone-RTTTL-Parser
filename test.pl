@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 
 use strict;
+use lib qw(lib);
 use SMS::Ringtone::RTTTL::Parser;
 use Test;
 
@@ -9,9 +10,19 @@ BEGIN {
 }
 
 while (<DATA>) {
- chomp;
+ s/[\r\n]+$//o;
  my $r = new SMS::Ringtone::RTTTL::Parser($_);
- ok(!($r->has_errors() || $r->has_warnings()));
+ if ($r->has_errors()) {
+  warn join("\n",'RTTTL string generated errors:',$r->get_errors());
+  ok(0);
+ }
+ elsif($r->has_warnings()) {
+  warn join("\n",'RTTTL string generated warnings:',$r->get_warnings());
+  ok(0);
+ }
+ else {
+  ok(1);
+ }
 }
 
 __DATA__

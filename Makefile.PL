@@ -7,7 +7,7 @@ require 5.6.0;
 WriteMakefile(
     'NAME'	=> 'SMS::Ringtone::RTTTL::Parser',
     'VERSION_FROM' => 'lib/SMS/Ringtone/RTTTL/Parser.pm',
-    'AUTHOR' => 'Craig Manley (c.manley@skybound.nl)',
+    'AUTHOR' => 'Craig Manley (cmanley@cpan.org)',
     'ABSTRACT' => 'Class for parsing and validating RTTTL strings.',
     'PREREQ_PM'	=> {},
     'dist' => {COMPRESS => 'gzip -9f', SUFFIX => 'gz'}

@@ -7,12 +7,12 @@ Description
 SMS::Ringtone::RTTTL::Parser is a pure Perl RTTTL string parser and validator.
 See http://members.tripod.lycos.nl/jupp/linux/soft/rtttl_player/EBNF.txt for
 RTTTL syntax in BNF.
-I've included a HTML version of the POD docs in the docs subdirectory.
+I've included a HTML version of the POD docs in the html subdirectory.
 
 Copyright
 ---------
 
-Copyright (C) 2001 Craig Manley <c.manley@skybound.nl>. All rights reserved.
+Copyright (C) 2001 Craig Manley <cmanley@cpan.org>. All rights reserved.
 This program is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself. There is NO warranty; not even for
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -32,4 +32,4 @@ perldoc SMS::Ringtone::RTTTL::Parser
 Author
 ------
 
-Craig Manley c.manley@skybound.nl
+Craig Manley cmanley@cpan.org
