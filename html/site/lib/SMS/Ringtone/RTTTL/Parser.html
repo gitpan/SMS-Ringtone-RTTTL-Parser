@@ -25,6 +25,7 @@
 	<LI><A HREF="#functions">FUNCTIONS</A></LI>
 	<LI><A HREF="#history">HISTORY</A></LI>
 	<LI><A HREF="#author">AUTHOR</A></LI>
+	<LI><A HREF="#acknowledgments">ACKNOWLEDGMENTS</A></LI>
 	<LI><A HREF="#copyright">COPYRIGHT</A></LI>
 </UL>
 <!-- INDEX END -->
@@ -43,7 +44,9 @@
              '8p,g#,8f#,8f,8f,8f#,8g#,c#,d#,2f,2p,g#,c#,8p,' .
              'c#6,8a#,g#,c#,8p,g#,8f#,8f,8f,8f#,8g#,c#,d#,2c#';</PRE>
 <PRE>
- my $r = new SMS::Ringtone::RTTTL::Parser($rtttl);</PRE>
+ my $r = new SMS::Ringtone::RTTTL::Parser($rtttl);
+ ....or....
+ my $r = new SMS::Ringtone::RTTTL::Parser($rtttl,{'STRICT_NOTE_PART_ORDER' =&gt; 0});</PRE>
 <PRE>
  # Check for errors
  if ($r-&gt;has_errors()) {
@@ -66,10 +69,18 @@ RTTTL syntax in BNF.</P>
 <HR>
 <H1><A NAME="class methods">CLASS METHODS</A></H1>
 <DL>
-<DT><STRONG><A NAME="item_new">new ($rtttl_string)</A></STRONG><BR>
+<DT><STRONG><A NAME="item_new">new ($rtttl_string,$hash_ref_of_options)</A></STRONG><BR>
 <DD>
-Returns a new SMS::Ringtone::RTTTL::Parser object. The only parameter passed must be a
-a RTTTL string. The RTTTL string is parsed and validated by this constructor.
+Returns a new SMS::Ringtone::RTTTL::Parser object. The 1st parameter
+passed must be a a RTTTL string. The RTTTL string is parsed and validated
+by this constructor. The second parameter is optional and must be a hash
+ref. The only currently supported option is STRICT_NOTE_PART_ORDER of
+which the default value is true (1). Setting this option to false (0), will
+allow RTTTL::Parser to accept RTTTL strings in which the notes have a
+format of ``&lt;note&gt; := [&lt;duration&gt;] &lt;note&gt; [&lt;special-duration&gt;] [&lt;scale&gt;] &lt;delimiter&gt;''
+instead of ``&lt;note&gt; := [&lt;duration&gt;] &lt;note&gt; [&lt;scale&gt;] [&lt;special-duration&gt;] &lt;delimiter&gt;''.
+This option was added because some RTTTL generators don't follow the
+smart messaging specifications strictly.
 <P></P></DL>
 <P>
 <HR>
@@ -228,11 +239,28 @@ Notes parsing follows specs more strictly.
 Fixed CRLF bug in test script.
 Warnings about whitespace in defaults section removed. Any whitespace
 found there or in notes section now results in an error.
+<P></P>
+<DT><STRONG><A NAME="item_Version_0%2E06_2002%2D03%2D21">Version 0.06  2002-03-21</A></STRONG><BR>
+<DD>
+Patched by Igor Ivoilov. Added support for <A HREF="#item_new"><CODE>new()</CODE></A> constructor option
+STRICT_NOTE_PART_ORDER because there are a lot of RTTTL generators that
+generate rtttl that doesn't strictly follow the specification but have a
+note form like:
+ &lt;note&gt; := [&lt;duration&gt;] &lt;note&gt; [&lt;special-duration&gt;] [&lt;scale&gt;] &lt;delimiter&gt;
+instead of:
+ &lt;note&gt; := [&lt;duration&gt;] &lt;note&gt; [&lt;scale&gt;] [&lt;special-duration&gt;] &lt;delimiter&gt;
 <P></P></DL>
 <P>
 <HR>
 <H1><A NAME="author">AUTHOR</A></H1>
-<P>Craig Manley	<A HREF="mailto:c.manley@skybound.nl">c.manley@skybound.nl</A></P>
+<PRE>
+ Craig Manley   c.manley@skybound.nl</PRE>
+<P>
+<HR>
+<H1><A NAME="acknowledgments">ACKNOWLEDGMENTS</A></H1>
+<P>Thanks to the following for finding bugs and/or offering suggestions:</P>
+<PRE>
+ Igor Ivoilov   igor@francoudi.com</PRE>
 <P>
 <HR>
 <H1><A NAME="copyright">COPYRIGHT</A></H1>

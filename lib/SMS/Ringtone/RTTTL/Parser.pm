@@ -54,7 +54,7 @@ our @EXPORT = qw(is_valid_bpm
                  nearest_bpm
                  nearest_duration
                  nearest_octave);
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 1;
 
@@ -165,6 +165,12 @@ sub new {
  $self->{'-PARTS'} = [];
  $self->{'-RTTTL'} = $rtttl;
  $self->{'-WARNINGS'} = [];
+ if (defined($options) && defined($options->{'STRICT_NOTE_PART_ORDER'})) {
+  $self->{'-STRICT_NOTE_PART_ORDER'} = $options->{'STRICT_NOTE_PART_ORDER'};
+ }
+ else {
+  $self->{'-STRICT_NOTE_PART_ORDER'} = 1;
+ }
 
  # Parse RTTTL
  $self->_parse();
@@ -370,6 +376,7 @@ sub _parse_notes {
  my $self = shift;
  my @notespart = split(',',shift);
  my $errors = $self->{'-ERRORS'};
+ my $strict_note_part_order = $self->{'-STRICT_NOTE_PART_ORDER'};
  unless(@notespart) {
   push(@{$errors},'No notes present in notes part.');
   return 0;
@@ -382,6 +389,15 @@ sub _parse_notes {
  my $i = 0;
  foreach my $e (@notespart) {
   $i++;
+  # The substitution below was added in v0.06 by Igor Ivoilov
+  # because there are a lot of RTTTL generators that generate rtttl that
+  # doesn't strictly follow the specification but have a not form like:
+  # <note> := [<duration>] <note> [<special-duration>] [<scale>] <delimiter>
+  # instead of:
+  # <note> := [<duration>] <note> [<scale>] [<special-duration>] <delimiter>
+  if (!$strict_note_part_order && ($e =~ /^(\d*)([P;BEH]|[CDFGA]#?)([\.;&]?)(\d*)$/oi)) {
+   $e = "$1$2$4$3";
+  }
   unless($e =~ /^(\d*)([P;BEH]|[CDFGA]#?)(\d*)([\.;&])?$/oi) {
    push(@{$errors},"Invalid syntax in note $i: $e");
    $result = 0;
@@ -737,6 +753,9 @@ SMS::Ringtone::RTTTL::Parser - parse and validate RTTTL strings.
              'c#6,8a#,g#,c#,8p,g#,8f#,8f,8f,8f#,8g#,c#,d#,2c#';
 
  my $r = new SMS::Ringtone::RTTTL::Parser($rtttl);
+ ....or....
+ my $r = new SMS::Ringtone::RTTTL::Parser($rtttl,{'STRICT_NOTE_PART_ORDER' => 0});
+
 
  # Check for errors
  if ($r->has_errors()) {
@@ -762,10 +781,18 @@ RTTTL syntax in BNF.
 
 =over 4
 
-=item new ($rtttl_string)
+=item new ($rtttl_string,$hash_ref_of_options)
 
-Returns a new SMS::Ringtone::RTTTL::Parser object. The only parameter passed must be a
-a RTTTL string. The RTTTL string is parsed and validated by this constructor.
+Returns a new SMS::Ringtone::RTTTL::Parser object. The 1st parameter
+passed must be a a RTTTL string. The RTTTL string is parsed and validated
+by this constructor. The second parameter is optional and must be a hash
+ref. The only currently supported option is STRICT_NOTE_PART_ORDER of
+which the default value is true (1). Setting this option to false (0), will
+allow RTTTL::Parser to accept RTTTL strings in which the notes have a
+format of "<note> := [<duration>] <note> [<special-duration>] [<scale>] <delimiter>"
+instead of "<note> := [<duration>] <note> [<scale>] [<special-duration>] <delimiter>".
+This option was added because some RTTTL generators don't follow the
+smart messaging specifications strictly.
 
 =back
 
@@ -933,11 +960,27 @@ Fixed CRLF bug in test script.
 Warnings about whitespace in defaults section removed. Any whitespace
 found there or in notes section now results in an error.
 
+=item Version 0.06  2002-03-21
+
+Patched by Igor Ivoilov. Added support for new() constructor option
+STRICT_NOTE_PART_ORDER because there are a lot of RTTTL generators that
+generate rtttl that doesn't strictly follow the specification but have a
+note form like:
+ <note> := [<duration>] <note> [<special-duration>] [<scale>] <delimiter>
+instead of:
+ <note> := [<duration>] <note> [<scale>] [<special-duration>] <delimiter>
+
 =back
 
 =head1 AUTHOR
 
-Craig Manley	c.manley@skybound.nl
+ Craig Manley	c.manley@skybound.nl
+
+=head1 ACKNOWLEDGMENTS
+
+Thanks to the following for finding bugs and/or offering suggestions:
+
+ Igor Ivoilov	igor@francoudi.com
 
 =head1 COPYRIGHT
 

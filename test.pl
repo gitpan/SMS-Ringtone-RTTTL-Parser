@@ -11,7 +11,7 @@ BEGIN {
 
 while (<DATA>) {
  s/[\r\n]+$//o;
- my $r = new SMS::Ringtone::RTTTL::Parser($_);
+ my $r = new SMS::Ringtone::RTTTL::Parser($_,{'STRICT_NOTE_PART_ORDER' => 1});
  if ($r->has_errors()) {
   warn join("\n",'RTTTL string generated errors:',$r->get_errors());
   ok(0);
